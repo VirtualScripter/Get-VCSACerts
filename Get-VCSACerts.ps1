@@ -1,7 +1,7 @@
 <#
     .NOTES
         Author: Mark McGill, VMware
-        Last Edit: 9-8-2020
+        Last Edit: 11-6-2020
         Version 1.2
     .SYNOPSIS
         Returns vCenter certificate information for all VCSA certificates, and optionally returns host certs
@@ -10,6 +10,19 @@
         See https://kb.vmware.com/s/article/79248
         vCenter and user are required. If no password is specified, you will be prompted for one
         USER MUST BE A VCENTER LOCAL USER (ie, administrator@vsphere.local), AND MUST BE IN SPN FORMAT (ie, user@domain.com)
+    .PARAMETER vcenters
+        REQUIRED
+        A single vCenter or array of vCenters to query
+    .PARAMETER user
+        REQUIRED
+        vSphere local domain user in SPN format (ie, administrator@vsphere.local). Local user is needed in order to query LDAP
+    .PARAMETER password
+        If you do not specify a password when calling the function, you will be prompted for it
+    .PARAMETER includeHosts
+        Using this flag will retrieve certs from each host associated with the vCenter(s)
+    .PARAMETER all
+        Using this flag will "STSRelyingParty" and "STSTenantTrustedCertificateChain" certificates, which are normally duplicates of already
+            reported certificates
     .EXAMPLE
         #load function and run
         . ./Get-VCSACerts.ps1
