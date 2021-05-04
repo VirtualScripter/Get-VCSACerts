@@ -1,8 +1,8 @@
 <#
     .NOTES
         Author: Mark McGill, VMware
-        Last Edit: 11-6-2020
-        Version 1.2
+        Last Edit: 5-4-2021
+        Version 1.3
     .SYNOPSIS
         Returns vCenter certificate information for all VCSA certificates, and optionally returns host certs
     .DESCRIPTION
@@ -236,7 +236,7 @@ function Get-VCSACerts
                 }
                 Try
                 {
-                    $vmHosts = Get-View -ViewType HostSystem -Property Name,Config.Certificate -Server $vCenter -ErrorAction Stop
+                    $vmHosts = Get-View -ViewType HostSystem -Property Name,Config.Certificate -Server $vCenter -Filter @{'Runtime.ConnectionState'='connected';'Runtime.PowerState'='poweredOn'} -ErrorAction Stop
                 }
                 Catch
                 {
@@ -244,27 +244,29 @@ function Get-VCSACerts
                 }
                 Write-Verbose "Getting certificates from $($vmHosts.Count) hosts"
                 Write-Verbose "$($vmHosts.Name)"
-                Try
-                {
+
                     foreach ($vmHost in $vmHosts)
                     {
-                        $cert = $vmHost.Config.Certificate
-                        $certificate = "" | Select vCenter,Type,Subject,ValidFrom,ValidTo,Issuer,Thumbprint
-                        $X509Cert = New-Object -TypeName System.Security.Cryptography.X509Certificates.X509Certificate2 -ArgumentList @(,([byte[]]$cert)) -ErrorAction Stop
-                        $certificate.vCenter = $vCenter
-                        $certificate.Type = "Host"
-                        $certificate.Subject = $vmHost.Name
-                        $certificate.ValidFrom = $X509Cert.NotBefore
-                        $certificate.ValidTo = $X509Cert.NotAfter
-                        $certificate.Issuer = $X509Cert.Issuer
-                        $certificate.Thumbprint = $X509Cert.Thumbprint
-                        $certificates += $certificate
+                        Try
+                        {
+                            $cert = $vmHost.Config.Certificate
+                            $certificate = "" | Select vCenter,Type,Subject,ValidFrom,ValidTo,Issuer,Thumbprint
+                            $X509Cert = New-Object -TypeName System.Security.Cryptography.X509Certificates.X509Certificate2 -ArgumentList @(,([byte[]]$cert)) -ErrorAction Stop
+                            $certificate.vCenter = $vCenter
+                            $certificate.Type = "Host"
+                            $certificate.Subject = $vmHost.Name
+                            $certificate.ValidFrom = $X509Cert.NotBefore
+                            $certificate.ValidTo = $X509Cert.NotAfter
+                            $certificate.Issuer = $X509Cert.Issuer
+                            $certificate.Thumbprint = $X509Cert.Thumbprint
+                            $certificates += $certificate
+                            }
+                        Catch
+                        {
+                            Write-Host "Error retrieving certificate information from $($vmHost.Name) - $($_.Exception.Message)" -ForegroundColor Red
+                        }
                     }#end foreach vmHost
-                }
-                Catch
-                {
-                    Throw "Error retrieving certificate information from $($vmHost.Name) - $($_.Exception.Message)"
-                }
+
                 If ($vCenterCreds -ne $null)
                 {
                     Remove-Variable vCenterCreds
